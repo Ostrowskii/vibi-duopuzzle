@@ -1,0 +1,33 @@
+
+
++eu gostaria de um lobby para receber os 2 players para jogar. pode ser uma tela só com a lista de player, 
+quem está online / quem está ready. é uma partida por vez. um botão ready. os dois primeiros que der ready jogam a partida.
+o resto fica só assitindo.
+o lobby pode ter um chat q mostra comandos e discuções. com uma leve diferenciação visual entre escrita de uma pessoa e comando.
+o chat é focado em entregar informação, então não precisa de espaçamento entre as linhas mt não. 
+
+depois do lobby, trocamos a visualização dividida em duas partes. o jogo / outras coisas
+
+1. o jogo fica a esquerda e contempla um mapa de grid 10 altura x 20 largura 
+bloco azul na esq sup p1
+bloco verde esq inferior p2 
+movimentação awsd e seta para ambos, o jogo usa vibi-network para compartilhar dados e fazer diferenciação de movimentação de player 
+o objetivo é cada um chegar em um tile de saida (tematizado com sua cor) q vai ficar na extrema direita nesse primeiro mapa.
+se ambos estiverem em cima do tile de saida (não pode ser invertido, tem q ser o dele) a fase é ganhada e aparece tela de vitória. com botão de
+ready / leave. se alguem sair, outra pessoa watching pode entrar no lugar, mas com outr cor (roxo, amarelo, marrom, vermelho, 
+são cores q podem ser usadas entre outras)
+por enquanto somos um quadrado p1 e um circulo p2.
+faça o mapa com um modelo semelhante ao que temos descrito no txt ......
+a unica coisa q eu gostaria q fosse separado, seria os mapas. quero q cada um tenha teu arquivo. e todos fiquem em um diretorio. só isso.
+lv 1, 2, 3, etc até 10 que é o fim com telinha de vitória com opção de voltar pro lobby  e com quanto tempo levou para vc conseguir passar por cada fase.
+se tiver outras pessoas q ja jogaram naquela room, tu vai comparar com o record.
+
+2.
+lista de pessoas online com descrição: p1/ p2/ watching 
+fica a direita, junto com um chat. o mesmo do lobby
+numero de level, ping, qqr info q não seja para jogar o jogo fica aqui. (o lv ate podia ficar no game, mas n preciso)
+
+
+
+
+

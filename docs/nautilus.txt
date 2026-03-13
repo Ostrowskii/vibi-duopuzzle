@@ -1,0 +1,39 @@
+Prompt inicial:
+crie um diretorio chamado docs e coloca ele no git.ignore
+
+Objetivo:
+Padronizar e acelerar a criação dos próximos projetos a partir do Nautilus, evitando ter que reexplicar 
+instruções recorrentes como a criação do diretório `docs` e sua inclusão no `.gitignore`.
+
+Deploy padrão:
+O projeto utiliza GitHub Pages, e eu sempre configuro a publicação para pegar os arquivos
+a partir do root.
+
+Padrão para projetos online multiplayer:
+Se o projeto for multiplayer online, utilizar a lib `vibi-network` (`vibinet`) como base
+de rede.
+Esse tipo de projeto precisa obrigatoriamente de `usuario` e `sala`, porque sem essas duas
+informações a sincronização e a organização da partida ficam ruins.
+Cada sala deve representar exatamente uma única partida. Nunca reutilizar a mesma sala para
+mais de uma partida, rodada, sessão ou qualquer outra variação. Se quiser jogar de novo,
+criar outra sala.
+
+
+
+
+
+
+
+
+========= padrões para IA nesse documento =========
+Padrão de largura para textos no Nautilus:
+Quero usar como padrão linhas com aproximadamente 103 caracteres,
+tentando chegar o mais próximo possível dessa quantidade, mesmo
+sabendo que nem sempre será possível manter exatamente o mesmo tamanho.
+
+
+
+============ trechos para ignorar, pois é tudo rascunho ==========
+direção (x,y) que está se movimentando. x pode ser 1, 0 ou -1 e y tbm.  de acordo com esse valor, podemos ter a movimentação awsd 
+        cima baixo direita ou esquerda. nunca diagonal. depois que começa a fazer a movimentação da primeira direção teclada, se teclar em outra direção, 
+        ele guarda a intenção e assim que não for mais possivel ir para a primeira direção, ele vai para essa segunda intenção. se for clicado 
