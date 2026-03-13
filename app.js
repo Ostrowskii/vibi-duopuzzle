@@ -117,6 +117,18 @@ const connection = {
 
 let latestState = makeInitialState();
 
+function clientApi() {
+  return connection.game?.client_api ?? null;
+}
+
+function socketOpen() {
+  return Boolean(clientApi()?.is_open?.());
+}
+
+function socketSynced() {
+  return Boolean(clientApi()?.is_synced?.());
+}
+
 function getOrCreateUid() {
   const existing = window.sessionStorage.getItem(STORAGE.uid);
   if (existing) {
@@ -577,6 +589,7 @@ function connectRoom() {
     if (connection.game !== game) return;
     connection.synced = true;
     ui.status = "live";
+    ui.error = "";
     postNet({ $: "join", uid: ui.uid, user });
     postNet({ $: "heartbeat", uid: ui.uid });
     connection.heartbeatTimer = window.setInterval(() => {
@@ -609,7 +622,10 @@ function disconnectRoom(sendLeave = true) {
   connection.heartbeatTimer = null;
   connection.game = null;
   connection.synced = false;
+  connection.room = "";
+  connection.user = "";
   ui.status = "idle";
+  ui.error = "";
   latestState = makeInitialState();
   window.setTimeout(() => {
     try {
@@ -621,10 +637,18 @@ function disconnectRoom(sendLeave = true) {
 
 function postNet(message) {
   if (!connection.game || !connection.synced) return;
+  if (!socketOpen()) {
+    ui.status = "offline";
+    ui.error = "Conexao com o VibiNet fechou. Entre na sala novamente.";
+    render();
+    return;
+  }
   try {
     connection.game.post(message);
-  } catch {
-    ui.error = "Falha ao postar no VibiNet.";
+  } catch (error) {
+    ui.status = "offline";
+    ui.error = error instanceof Error ? error.message : "Falha ao postar no VibiNet.";
+    render();
   }
 }
 
@@ -688,13 +712,14 @@ function formatTicks(ticks) {
 }
 
 function connectionLabel() {
-  if (ui.status === "live") return "live";
+  if (connection.game && !socketOpen()) return "offline";
+  if (socketOpen() && socketSynced()) return "live";
   if (ui.status === "syncing") return "syncing";
   return "idle";
 }
 
 function pingText() {
-  if (!connection.game) return "--";
+  if (!connection.game || !socketOpen()) return "--";
   const ping = connection.game.ping();
   if (!Number.isFinite(ping)) return "--";
   return `${Math.max(0, Math.round(ping))}ms`;
@@ -712,6 +737,10 @@ function roleTextForPerson(person, state) {
 
 function readyLabel(state) {
   return currentPerson(state)?.ready ? "Unready" : "Ready";
+}
+
+function readyList(state) {
+  return state.people.filter((person) => person.ready && person.online);
 }
 
 function renderCell(map, state, x, y) {
@@ -812,6 +841,27 @@ function renderSplits(state) {
   `;
 }
 
+function renderLobbyQueue(state) {
+  const ready = readyList(state);
+  if (ready.length === 0) {
+    return `<div class="empty">Ninguem ready ainda.</div>`;
+  }
+  return `
+    <div class="stack">
+      ${ready
+        .map(
+          (person, index) => `
+            <div class="person-card">
+              <div class="person-name">#${index + 1} ${escapeHtml(person.name)}</div>
+              <div class="person-meta">${index < 2 ? "entra na partida" : "watching na fila"} / ${escapeHtml(roleTextForPerson(person, state))}</div>
+            </div>
+          `
+        )
+        .join("")}
+    </div>
+  `;
+}
+
 function renderOverlay(state) {
   const slotName = slotNameForUid(state, ui.uid);
   const canReady = Boolean(slotName);
@@ -857,8 +907,8 @@ function renderSetup() {
         <article class="hero">
           <div class="eyebrow">Online Multiplayer</div>
           <h1 class="display">Vibi DuoPuzzle</h1>
-          <p class="copy">Uma room recebe uma partida por vez. Os dois primeiros que ficarem ready entram no grid. O resto assiste, conversa e pode assumir vaga no meio da fase.</p>
-          <div class="rule">Este projeto usa <strong>vibi-network</strong>. Para funcionar bem, ele precisa de <strong>usuario</strong> e <strong>sala</strong>. Existe so uma partida ativa por sala.</div>
+          <p class="copy">Welcome. Entra na sala, escolhe tua dupla e tenta fechar os 10 levels no menor tempo possivel.</p>
+          <div class="rule">Dois jogam, o resto acompanha no lobby, conversa no chat e pode assumir vaga quando ela abrir.</div>
         </article>
         <form class="card" data-form="join">
           <div class="eyebrow">Entrar</div>
@@ -950,12 +1000,13 @@ function renderLobbyBanner(state) {
   return `
     <div class="card">
       <div class="eyebrow">Lobby ativo</div>
-      <p class="copy">Os dois primeiros online e ready entram na partida. Esta room mantem uma unica run. Quem sobra fica watching e pode assumir vaga durante o match.</p>
+      <p class="copy">O lobby mostra quem ficou ready e em que ordem a fila entra. Os dois primeiros jogam. O resto fica watching e pode assumir vaga durante o match.</p>
       <div class="chips">
         ${renderChip("Ready", String(state.people.filter((person) => person.ready).length))}
         ${renderChip("Online", String(state.people.filter((person) => person.online).length))}
         ${renderChip("Record total", state.bestTotalTime ? formatTicks(state.bestTotalTime) : "--")}
       </div>
+      ${renderLobbyQueue(state)}
     </div>
   `;
 }
@@ -982,6 +1033,9 @@ function escapeAttr(value) {
 }
 
 function render() {
+  if (connection.game && connection.synced && !socketOpen()) {
+    ui.status = "offline";
+  }
   const state = getCurrentState();
   root.innerHTML = connection.game ? renderConnected(state) : renderSetup();
 }

@@ -842,6 +842,7 @@ function create_client(server) {
   const sync_listeners = [];
   const ws_url = normalize_ws_url(server ?? default_ws_url());
   const ws = new WebSocket(ws_url);
+  let sync_interval_id = null;
   ws.binaryType = "arraybuffer";
   function server_time() {
     if (!isFinite(time_sync.clock_offset)) {
@@ -849,14 +850,21 @@ function create_client(server) {
     }
     return Math.floor(now() + time_sync.clock_offset);
   }
-  function ensure_open() {
-    if (ws.readyState !== WebSocket.OPEN) {
-      throw new Error("WebSocket not open");
+  function is_open() {
+    return ws.readyState === WebSocket.OPEN;
+  }
+  function clear_sync_interval() {
+    if (sync_interval_id !== null) {
+      clearInterval(sync_interval_id);
+      sync_interval_id = null;
     }
   }
   function send(buf) {
-    ensure_open();
+    if (!is_open()) {
+      return false;
+    }
     ws.send(buf);
+    return true;
   }
   function register_handler(room, packer, handler) {
     const existing = room_watchers.get(room);
@@ -875,10 +883,19 @@ function create_client(server) {
     console.log("[WS] Connected");
     time_sync.request_sent_at = now();
     send(encode_message({ $: "get_time" }));
-    setInterval(() => {
+    clear_sync_interval();
+    sync_interval_id = setInterval(() => {
+      if (!is_open()) {
+        return;
+      }
       time_sync.request_sent_at = now();
       send(encode_message({ $: "get_time" }));
     }, 2e3);
+  });
+  ws.addEventListener("close", () => {
+    clear_sync_interval();
+    is_synced = false;
+    time_sync.last_ping = Infinity;
   });
   ws.addEventListener("message", (event) => {
     const data = event.data instanceof ArrayBuffer ? new Uint8Array(event.data) : new Uint8Array(event.data);
@@ -943,8 +960,13 @@ function create_client(server) {
       return name;
     },
     server_time,
-    ping: () => time_sync.last_ping,
-    close: () => ws.close()
+    ping: () => is_open() ? time_sync.last_ping : Infinity,
+    close: () => {
+      clear_sync_interval();
+      ws.close();
+    },
+    is_open,
+    is_synced: () => is_synced
   };
 }
 
