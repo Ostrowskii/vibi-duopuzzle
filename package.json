@@ -1,0 +1,8 @@
+{
+  "name": "vibi-duopuzzle",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build:bend": "./scripts/build-bend.sh"
+  }
+}
