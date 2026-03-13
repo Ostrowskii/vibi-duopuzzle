@@ -17,7 +17,7 @@ se ambos estiverem em cima do tile de saida (não pode ser invertido, tem q ser 
 ready / leave. se alguem sair, outra pessoa watching pode entrar no lugar, mas com outr cor (roxo, amarelo, marrom, vermelho, 
 são cores q podem ser usadas entre outras)
 por enquanto somos um quadrado p1 e um circulo p2.
-faça o mapa com um modelo semelhante ao que temos descrito no txt ......
+faça o mapa com um modelo semelhante ao que temos descrito no txt mapa.txt (é baseado e não igual, la é de outro game...)
 a unica coisa q eu gostaria q fosse separado, seria os mapas. quero q cada um tenha teu arquivo. e todos fiquem em um diretorio. só isso.
 lv 1, 2, 3, etc até 10 que é o fim com telinha de vitória com opção de voltar pro lobby  e com quanto tempo levou para vc conseguir passar por cada fase.
 se tiver outras pessoas q ja jogaram naquela room, tu vai comparar com o record.

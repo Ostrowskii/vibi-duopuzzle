@@ -121,12 +121,56 @@ function clientApi() {
   return connection.game?.client_api ?? null;
 }
 
+function clientDebug() {
+  const api = clientApi();
+  if (!api || typeof api.debug_dump !== "function") {
+    return null;
+  }
+  return api.debug_dump();
+}
+
+function socketReadyState() {
+  const readyState = clientDebug()?.ws_ready_state;
+  return typeof readyState === "number" ? readyState : null;
+}
+
 function socketOpen() {
-  return Boolean(clientApi()?.is_open?.());
+  return socketReadyState() === WebSocket.OPEN;
+}
+
+function socketConnecting() {
+  if (!connection.game) {
+    return false;
+  }
+  const readyState = socketReadyState();
+  return readyState === null || readyState === WebSocket.CONNECTING || readyState === WebSocket.CLOSING;
+}
+
+function socketReconnectScheduled() {
+  return Boolean(clientDebug()?.reconnect_scheduled);
 }
 
 function socketSynced() {
-  return Boolean(clientApi()?.is_synced?.());
+  return Boolean(clientDebug()?.is_synced || connection.synced);
+}
+
+function syncConnectionStatus() {
+  if (!connection.game) {
+    ui.status = "idle";
+    return;
+  }
+  if (socketOpen()) {
+    ui.status = socketSynced() ? "live" : "syncing";
+    if (ui.status === "live") {
+      ui.error = "";
+    }
+    return;
+  }
+  if (socketConnecting() || socketReconnectScheduled()) {
+    ui.status = "syncing";
+    return;
+  }
+  ui.status = "offline";
 }
 
 function getOrCreateUid() {
@@ -629,6 +673,10 @@ function disconnectRoom(sendLeave = true) {
   latestState = makeInitialState();
   window.setTimeout(() => {
     try {
+      game.close?.();
+    } catch {
+    }
+    try {
       game.client_api?.close?.();
     } catch {
     }
@@ -637,17 +685,16 @@ function disconnectRoom(sendLeave = true) {
 
 function postNet(message) {
   if (!connection.game || !connection.synced) return;
-  if (!socketOpen()) {
-    ui.status = "offline";
-    ui.error = "Conexao com o VibiNet fechou. Entre na sala novamente.";
-    render();
-    return;
-  }
   try {
     connection.game.post(message);
   } catch (error) {
-    ui.status = "offline";
-    ui.error = error instanceof Error ? error.message : "Falha ao postar no VibiNet.";
+    const retrying = socketConnecting() || socketReconnectScheduled();
+    ui.status = retrying ? "syncing" : "offline";
+    ui.error = retrying
+      ? "Conexao oscilando. O VibiNet esta tentando reconectar."
+      : error instanceof Error
+        ? error.message
+        : "Falha ao postar no VibiNet.";
     render();
   }
 }
@@ -712,14 +759,14 @@ function formatTicks(ticks) {
 }
 
 function connectionLabel() {
-  if (connection.game && !socketOpen()) return "offline";
+  if (!connection.game) return "idle";
   if (socketOpen() && socketSynced()) return "live";
-  if (ui.status === "syncing") return "syncing";
-  return "idle";
+  if (socketConnecting() || socketReconnectScheduled() || ui.status === "syncing") return "syncing";
+  return "offline";
 }
 
 function pingText() {
-  if (!connection.game || !socketOpen()) return "--";
+  if (!connection.game || !socketOpen() || !socketSynced()) return "--";
   const ping = connection.game.ping();
   if (!Number.isFinite(ping)) return "--";
   return `${Math.max(0, Math.round(ping))}ms`;
@@ -1033,9 +1080,7 @@ function escapeAttr(value) {
 }
 
 function render() {
-  if (connection.game && connection.synced && !socketOpen()) {
-    ui.status = "offline";
-  }
+  syncConnectionStatus();
   const state = getCurrentState();
   root.innerHTML = connection.game ? renderConnected(state) : renderSetup();
 }
@@ -1110,6 +1155,10 @@ window.addEventListener("pagehide", () => {
   if (!connection.game || !connection.synced) return;
   try {
     connection.game.post({ $: "leave", uid: ui.uid });
+  } catch {
+  }
+  try {
+    connection.game.close?.();
   } catch {
   }
   try {
