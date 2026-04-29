@@ -22,6 +22,7 @@ const DIR = {
 
 const TICK_RATE = 8;
 const TOLERANCE_MS = 250;
+const VIBINET_SERVER_URL = "wss://net.vibistudiotest.site";
 const HEARTBEAT_MS = 2500;
 const RENDER_MS = 120;
 const PRESENCE_TIMEOUT_TICKS = 48;
@@ -617,6 +618,7 @@ function connectRoom() {
   latestState = makeInitialState();
   const game = new VibiNet.game({
     room,
+    server: VIBINET_SERVER_URL,
     initial: makeInitialState(),
     on_tick: onTick,
     on_post: onPost,
